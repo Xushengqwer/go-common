@@ -1,0 +1,28 @@
+# Compiled Object files, Static Libraries, Executables
+*.o
+*.a
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Output of go build
+/dist/
+/bin/
+/pkg/
+
+# Go vendor directory
+/vendor/
+
+# Environment variables file
+.env
+
+# IDE settings
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
