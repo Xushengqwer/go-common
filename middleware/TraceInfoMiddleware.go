@@ -3,7 +3,7 @@ package middleware
 import (
 	"github.com/Xushengqwer/go-common/constants"
 	"github.com/gin-gonic/gin"
-	"go.opentelemetry.io/otel/trace" // 导入 OTel trace 包
+	"go.opentelemetry.io/otel/trace"
 )
 
 // RequestIDMiddleware (已改造) - 主要职责是提取 OTel Trace/Span ID 并放入 Context
