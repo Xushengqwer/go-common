@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.21.0" // 使用最新的语义约定
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0" // 使用最新的语义约定
 )
 
 // InitTracerProvider 初始化并注册全局的 OpenTelemetry TracerProvider
