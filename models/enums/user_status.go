@@ -1,5 +1,10 @@
 package enums
 
+import (
+	"fmt"
+	"strings"
+)
+
 // UserStatus 定义用户状态的枚举类型
 type UserStatus uint
 
@@ -21,5 +26,16 @@ func (s UserStatus) String() string {
 		return "blacklisted"
 	default:
 		return "unknown"
+	}
+}
+
+func StatusFromString(s string) (UserStatus, error) {
+	switch strings.ToLower(s) {
+	case "active":
+		return StatusActive, nil
+	case "blacklisted":
+		return StatusBlacklisted, nil
+	default:
+		return StatusActive, fmt.Errorf("无效的用户状态字符串: %s", s) // 返回默认值或错误
 	}
 }

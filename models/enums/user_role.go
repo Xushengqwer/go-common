@@ -1,5 +1,10 @@
 package enums
 
+import (
+	"fmt"
+	"strings"
+)
+
 // UserRole 定义用户角色的枚举类型
 type UserRole uint
 
@@ -24,5 +29,18 @@ func (r UserRole) String() string {
 		return "guest"
 	default:
 		return "unknown"
+	}
+}
+
+func RoleFromString(s string) (UserRole, error) {
+	switch strings.ToLower(s) {
+	case "admin":
+		return RoleAdmin, nil
+	case "user":
+		return RoleUser, nil
+	case "guest":
+		return RoleGuest, nil
+	default:
+		return RoleUser, fmt.Errorf("无效的用户角色字符串: %s", s) // 返回默认值或错误
 	}
 }
