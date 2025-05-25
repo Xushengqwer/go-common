@@ -1,0 +1,235 @@
+# docker-compose.unified.yaml
+# 统一管理所有微服务的基础依赖 (MySQL, Redis, Kafka, Elasticsearch 等)
+# 最终确认版 - 请使用此版本！
+
+version: '3.8'
+
+services:
+  # --- MySQL 主库 (Primary) ---
+  mysql-primary:
+    image: mysql:8.0
+    container_name: doer_mysql_primary # <--- 统一命名
+    command:
+      - --server-id=1
+      - --log-bin=mysql-bin
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-format=ROW
+      - --read-only=0
+    environment:
+      MYSQL_ROOT_PASSWORD: root      # <--- 统一密码为 root
+      MYSQL_REPL_USER: repl_user
+      MYSQL_REPL_PASSWORD: repl_pass
+    ports:
+      - "3306:3306" # <--- 统一主库端口为 3306
+    volumes:
+      - mysql_primary_data:/var/lib/mysql
+      # 重要: 确保此目录存在，并包含创建 doer_userHub 和 doer_post_service
+      #       以及 repl_user 的 SQL 脚本。
+      - ./docker/mysql/init-scripts/primary:/docker-entrypoint-initdb.d
+    networks:
+      - doer_xyz_dev_network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # --- MySQL 从库 (Replica) ---
+  mysql-replica:
+    image: mysql:8.0
+    container_name: doer_mysql_replica # <--- 统一命名
+    command:
+      - --server-id=2
+      - --log-bin=mysql-bin
+      - --gtid-mode=ON
+      - --enforce-gtid-consistency=ON
+      - --binlog-format=ROW
+      - --relay-log=mysql-relay-bin
+      - --read-only=1
+    depends_on:
+      mysql-primary:
+        condition: service_healthy
+    environment:
+      MYSQL_ROOT_PASSWORD: root # <--- 统一密码为 root
+      MYSQL_PRIMARY_HOST: mysql-primary
+      MYSQL_REPL_USER: repl_user
+      MYSQL_REPL_PASSWORD: repl_pass
+    ports:
+      - "3307:3306" # <--- 统一从库端口为 3307
+    volumes:
+      - mysql_replica_data:/var/lib/mysql
+      # 重要: 确保此目录存在，并包含配置从库复制的脚本。
+      - ./docker/mysql/init-scripts/replica:/docker-entrypoint-initdb.d
+    networks:
+      - doer_xyz_dev_network
+    restart: unless-stopped
+
+  # --- Redis 服务 (使用 Redis Stack) ---
+  redis:
+    image: redis/redis-stack-server:7.2.0-v9
+    container_name: doer_redis # <--- 统一命名
+    ports:
+      - "6379:6379" # <--- 统一 Redis 端口为 6379
+      - "8001:8001"
+    environment:
+      - REDIS_ARGS=--requirepass root # <--- 统一密码为 root
+    volumes:
+      - redis_data:/data
+    networks:
+      - doer_xyz_dev_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "root", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Kafka Broker 1 ---
+  kafka-broker1:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-broker1
+    container_name: doer_kafka_broker1 # <--- 统一命名
+    volumes:
+      - kafka_broker1_data:/var/lib/kafka/data
+    ports:
+      - "9092:9092" # <--- 统一 Broker1 端口为 9092
+    environment:
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-broker1:19091,2@kafka-broker2:19091'
+      CLUSTER_ID: '1IOGvJTQRHekq5NzkDNl-w' # <--- 统一集群 ID
+      KAFKA_LISTENERS: 'BROKER://0.0.0.0:29092,CONTROLLER://0.0.0.0:19091,EXTERNAL_HOST://0.0.0.0:9092'
+      KAFKA_ADVERTISED_LISTENERS: 'BROKER://kafka-broker1:29092,EXTERNAL_HOST://localhost:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'BROKER'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'BROKER:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL_HOST:PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_MESSAGE_MAX_BYTES: 1048576
+    networks:
+      - doer_xyz_dev_network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # --- Kafka Broker 2 ---
+  kafka-broker2:
+    image: confluentinc/cp-kafka:7.6.1
+    hostname: kafka-broker2
+    container_name: doer_kafka_broker2 # <--- 统一命名
+    volumes:
+      - kafka_broker2_data:/var/lib/kafka/data
+    ports:
+      - "9093:9093" # <--- 统一 Broker2 端口为 9093
+    environment:
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_NODE_ID: 2
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka-broker1:19091,2@kafka-broker2:19091'
+      CLUSTER_ID: '1IOGvJTQRHekq5NzkDNl-w'
+      KAFKA_LISTENERS: 'BROKER://0.0.0.0:29093,CONTROLLER://0.0.0.0:19091,EXTERNAL_HOST://0.0.0.0:9093'
+      KAFKA_ADVERTISED_LISTENERS: 'BROKER://kafka-broker2:29093,EXTERNAL_HOST://localhost:9093'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'BROKER'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'BROKER:PLAINTEXT,CONTROLLER:PLAINTEXT,EXTERNAL_HOST:PLAINTEXT'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 2
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_MESSAGE_MAX_BYTES: 1048576
+    depends_on:
+      - kafka-broker1
+    networks:
+      - doer_xyz_dev_network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9093 --list > /dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # --- Elasticsearch (使用自定义构建) ---
+  elasticsearch:
+    build: ./elasticsearch_custom # 重要: 确保此目录及 Dockerfile 存在
+    container_name: doer_elasticsearch # <--- 统一命名
+    ports:
+      - "9200:9200" # <--- 统一 ES 端口为 9200
+      - "9300:9300"
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: false
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    networks:
+      - doer_xyz_dev_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=5s || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    restart: unless-stopped
+
+  # --- Kafdrop (Kafka UI) ---
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: doer_kafdrop # <--- 统一命名
+    ports:
+      - "9000:9000" # <--- 统一 Kafdrop 端口为 9000
+    environment:
+      KAFKA_BROKERCONNECT: "kafka-broker1:29092,kafka-broker2:29093"
+    depends_on:
+      kafka-broker1:
+        condition: service_healthy
+      kafka-broker2:
+        condition: service_healthy
+    networks:
+      - doer_xyz_dev_network
+    restart: unless-stopped
+
+  # --- Kibana (Elasticsearch UI) ---
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: doer_kibana # <--- 统一命名
+    ports:
+      - "5601:5601" # <--- 统一 Kibana 端口为 5601
+    environment:
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - doer_xyz_dev_network
+    restart: unless-stopped
+
+# --- 统一网络定义 ---
+networks:
+  doer_xyz_dev_network: # <--- 统一网络名
+    driver: bridge
+
+# --- 统一数据卷定义 ---
+volumes:
+  mysql_primary_data:
+  mysql_replica_data:
+  redis_data:
+  kafka_broker1_data:
+  kafka_broker2_data:
+  es_data:
