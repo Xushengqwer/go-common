@@ -18,7 +18,8 @@ const (
 
 	// 5xx 服务器错误
 
-	ErrCodeServerInternal  = 50001 // 服务器内部错误
-	ErrCodeServerTimeout   = 50002 // 操作超时
-	ErrCodeServiceNotFound = 50003 // 服务未找到（网关专用）
+	ErrCodeServerInternal         = 50001 // 服务器内部错误
+	ErrCodeServerTimeout          = 50002 // 操作超时
+	ErrCodeThirdPartyServiceError = 50004 // 外部第三方服务调用失败
+	ErrCodeServiceNotFound        = 50003 // 服务未找到（网关专用）
 )
