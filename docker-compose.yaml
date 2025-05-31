@@ -1,9 +1,6 @@
 # docker-compose.unified.yaml
 # 统一管理所有微服务的基础依赖 (MySQL, Redis, Kafka, Elasticsearch 等)
 # 最终确认版 - 请使用此版本！
-
-version: '3.8'
-
 services:
   # --- MySQL 主库 (Primary) ---
   mysql-primary:
