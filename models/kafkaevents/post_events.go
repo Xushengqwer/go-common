@@ -17,6 +17,13 @@ type RejectionDetail struct {
 	MatchedContent []string `json:"matchedContent,omitempty"`
 }
 
+// ImageEventData defines the structure for essential image information in Kafka events.
+type ImageEventData struct {
+	ImageURL     string `json:"image_url"`               // Publicly accessible URL of the image
+	ObjectKey    string `json:"object_key,omitempty"`    // Key of the image in object storage (optional, if consumers need it)
+	DisplayOrder int    `json:"display_order,omitempty"` // Display order of the image (optional)
+}
+
 // PostData 是跨 Kafka 事件共享的、统一的帖子数据核心结构。
 type PostData struct {
 	ID             uint64            `json:"id"`
@@ -33,6 +40,7 @@ type PostData struct {
 	ContactQRCode  string            `json:"contact_qr_code,omitempty"`
 	CreatedAt      int64             `json:"created_at"`
 	UpdatedAt      int64             `json:"updated_at"`
+	Images         []ImageEventData  `json:"images,omitempty"` // 图片列表
 }
 
 // ==================================
