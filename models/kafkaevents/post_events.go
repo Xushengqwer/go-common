@@ -26,21 +26,22 @@ type ImageEventData struct {
 
 // PostData 是跨 Kafka 事件共享的、统一的帖子数据核心结构。
 type PostData struct {
-	ID             uint64            `json:"id"`
-	Title          string            `json:"title"`
-	Content        string            `json:"content"`
-	AuthorID       string            `json:"author_id"`
-	AuthorAvatar   string            `json:"author_avatar"`
+	ID           uint64 `json:"id"`
+	Title        string `json:"title"`
+	Content      string `json:"content"`
+	AuthorID     string `json:"author_id"`
+	AuthorAvatar string `json:"author_avatar"`
+
 	AuthorUsername string            `json:"author_username"`
-	Tags           []string          `json:"tags,omitempty"`
 	Status         enums.Status      `json:"status"` // <-- 使用 enums!
 	ViewCount      int64             `json:"view_count"`
 	OfficialTag    enums.OfficialTag `json:"official_tag"` // <-- 使用 enums!
 	PricePerUnit   float64           `json:"price_per_unit"`
-	ContactQRCode  string            `json:"contact_qr_code,omitempty"`
-	CreatedAt      int64             `json:"created_at"`
-	UpdatedAt      int64             `json:"updated_at"`
-	Images         []ImageEventData  `json:"images,omitempty"` // 图片列表
+
+	ContactInfo string           `json:"contact_info,omitempty"`
+	CreatedAt   int64            `json:"created_at"`
+	UpdatedAt   int64            `json:"updated_at"`
+	Images      []ImageEventData `json:"images,omitempty"` // 图片列表
 }
 
 // ==================================
