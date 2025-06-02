@@ -6,11 +6,11 @@ package enums
 //   - 0: 待审核 (Pending) - 对象已提交，等待处理。
 //   - 1: 审核通过 (Approved) - 对象已通过审核，变为有效或激活状态。
 //   - 2: 拒绝 (Rejected) - 对象未通过审核，变为无效或非激活状态。
-type Status uint
+type Status int
 
 // 定义枚举常量
 const (
-	Pending  Status = iota // 0 待审核 - 对象已提交，等待处理。
-	Approved               // 1 审核通过 - 对象已通过审核，变为有效或激活状态。
-	Rejected               // 2 拒绝 - 对象未通过审核，变为无效或非激活状态。
+	Pending  Status = 0 // 0 待审核 - 对象已提交，等待处理。
+	Approved Status = 1 // 1 审核通过 - 对象已通过审核，变为有效或激活状态。
+	Rejected Status = 2 // 2 拒绝 - 对象未通过审核，变为无效或非激活状态。
 )
