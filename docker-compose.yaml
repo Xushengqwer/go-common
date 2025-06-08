@@ -1,7 +1,37 @@
-# docker-compose.unified.yaml
+# docker-compose.yaml
 # 统一管理所有微服务的基础依赖 (MySQL, Redis, Kafka, Elasticsearch 等)
 # 最终确认版 - 请使用此版本！
 services:
+  # --- API Gateway Reverse Proxy (Nginx) ---
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: doer_nginx
+    ports:
+      - "80:80"   # 将 CVM 的 80 端口映射到 Nginx 容器的 80 端口
+      - "443:443" # 将 CVM 的 443 端口映射到 Nginx 容器的 443 端口
+    volumes:
+      # 将我们准备好的 Nginx 配置文件挂载到容器内的正确位置
+      - ./nginx/conf.d/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # 挂载 Certbot 生成的证书目录
+      - ./certbot/conf:/etc/letsencrypt
+      # 挂载 Certbot 用于域名验证的目录
+      - ./certbot/www:/var/www/certbot
+    networks:
+      - doer_xyz_dev_network # 确保 Nginx 和你的所有 Go 应用在同一个网络中
+    restart: unless-stopped
+
+  # --- Certbot for SSL Certificate Management ---
+  certbot:
+    image: certbot/certbot
+    container_name: doer_certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    # 这个 entrypoint 会让容器每12小时自动尝试续期证书，非常方便
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+    restart: unless-stopped
+
+
   # --- MySQL 主库 (Primary) ---
   mysql-primary:
     image: mysql:8.0

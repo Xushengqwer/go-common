@@ -31,7 +31,7 @@ func LoadConfig(configPathFromFlag string, cfgPtr interface{}) error {
 		log.Println("检测到 CONFIG_SOURCE=env，将仅从环境变量加载配置。")
 		v.AutomaticEnv() // 启用环境变量自动匹配 (例如 MYAPP_SERVER_PORT 匹配 Server.Port)
 		// 对于嵌套结构，可能需要设置 EnvKeyReplacer
-		// v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 		if err := v.Unmarshal(cfgPtr); err != nil {
 			log.Printf("从环境变量解析配置失败: %v", err)
 			return fmt.Errorf("无法从环境变量解析配置: %w", err)
